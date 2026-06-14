@@ -1,0 +1,49 @@
+%% Adaptive Rendering Engine — Data Flow Diagram (Level 1)
+%% Render: https://mermaid.live  or  `mmdc -i data-flow.mmd -o data-flow.png`
+flowchart LR
+    %% ---- External entities ----
+    client([Client / Browser<br/>curl · ab]):::ext
+    edge([Edge nginx node<br/>+latency · X-Served-By]):::ext
+    scripts([Test / Load scripts<br/>X-* control headers]):::ext
+
+    %% ---- Data stores ----
+    D6[(D6 Route table /<br/>Page modules)]:::store
+    D1[(D1 Memory cache)]:::store
+    D2[(D2 File cache .cache/)]:::store
+    D3[(D3 Redis shared)]:::store
+    D4[(D4 SSG public/ssg/)]:::store
+    D5[(D5 Metrics store<br/>report.json/csv + logs)]:::store
+
+    %% ---- Processes ----
+    P1((1.0 HTTP Request<br/>Handler)):::proc
+    P2((2.0 Context<br/>Analyzer)):::proc
+    P3((3.0 Decision<br/>Engine)):::proc
+    P4((4.0 Render<br/>Strategy Registry)):::proc
+    P5((5.0 Cache<br/>Manager)):::proc
+    P6((6.0 Metrics<br/>Collector)):::proc
+
+    %% ---- Flows ----
+    client -- HTTP req + headers --> P1
+    edge -- forwarded req --> P1
+    scripts -- X-* overrides --> P1
+
+    D6 -- resolvePage --> P1
+    P1 -- url, headers, page, signals --> P2
+    P1 -- peekState(key) --> P5
+    P2 -- RequestContext --> P3
+    P3 -- DecisionTrace --> P4
+    P4 -- lookup / set --> P5
+
+    P5 --- D1
+    P5 --- D2
+    P5 --- D3
+    P4 -- read prebuilt --> D4
+
+    P4 -- RenderResult (body/stream) --> P1
+    P1 -- "HTML/stream + X-Rendering-Strategy + X-Decision-Reason" --> client
+    P1 -- record(timing, strategy, ctx) --> P6
+    P6 --> D5
+
+    classDef ext fill:#e8f0fe,stroke:#4285f4,color:#1a3a6b;
+    classDef proc fill:#fff,stroke:#34a853,color:#13602b;
+    classDef store fill:#f1f3f4,stroke:#9aa0a6,color:#444;
