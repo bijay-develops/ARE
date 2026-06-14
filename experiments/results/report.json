@@ -1,55 +1,55 @@
 [
   {
     "strategy": "SSG",
-    "count": 2,
-    "avgTtfbMs": 1.34,
-    "avgRenderMs": 0.9,
-    "avgTotalMs": 2.23,
+    "count": 4,
+    "avgTtfbMs": 1.24,
+    "avgRenderMs": 0.74,
+    "avgTotalMs": 1.98,
     "cacheHitRate": 1,
     "avgBytes": 1199
   },
   {
     "strategy": "CSR",
-    "count": 4,
-    "avgTtfbMs": 0.26,
-    "avgRenderMs": 0.13,
-    "avgTotalMs": 0.4,
+    "count": 5,
+    "avgTtfbMs": 0.31,
+    "avgRenderMs": 0.16,
+    "avgTotalMs": 0.46,
     "cacheHitRate": 0,
     "avgBytes": 401
   },
   {
     "strategy": "ISR",
-    "count": 5,
-    "avgTtfbMs": 0.4,
+    "count": 7,
+    "avgTtfbMs": 0.41,
     "avgRenderMs": 0.26,
-    "avgTotalMs": 0.66,
+    "avgTotalMs": 0.68,
     "cacheHitRate": 1,
     "avgBytes": 1219
   },
   {
     "strategy": "SSR",
-    "count": 4,
-    "avgTtfbMs": 6.64,
+    "count": 6,
+    "avgTtfbMs": 6.45,
     "avgRenderMs": 0.16,
-    "avgTotalMs": 6.8,
+    "avgTotalMs": 6.61,
     "cacheHitRate": 0,
     "avgBytes": 1219
   },
   {
     "strategy": "STREAMING_SSR",
-    "count": 4,
-    "avgTtfbMs": 7.83,
-    "avgRenderMs": 0.7,
-    "avgTotalMs": 8.53,
+    "count": 6,
+    "avgTtfbMs": 8.36,
+    "avgRenderMs": 0.79,
+    "avgTotalMs": 9.15,
     "cacheHitRate": 0,
-    "avgBytes": 20888
+    "avgBytes": 20896
   },
   {
     "strategy": "EDGE_ISR",
-    "count": 2,
-    "avgTtfbMs": 1.61,
-    "avgRenderMs": 0.23,
-    "avgTotalMs": 1.83,
+    "count": 3,
+    "avgTtfbMs": 1.48,
+    "avgRenderMs": 0.2,
+    "avgTotalMs": 1.68,
     "cacheHitRate": 1,
     "avgBytes": 1234
   }
