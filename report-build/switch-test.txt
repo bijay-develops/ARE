@@ -1,0 +1,7 @@
+static volatility, /static                     -> SSG             (expect SSG)
+realtime + fast + desktop, /dynamic            -> CSR             (expect CSR)
+high load, /dynamic                            -> ISR             (expect ISR)
+realtime + mobile, /dynamic                    -> SSR             (expect SSR)
+heavy payload + medium network, /heavy         -> STREAMING_SSR   (expect STREAMING_SSR)
+static + edge + cold cache, /dynamic           -> EDGE_ISR        (expect EDGE_ISR)
+periodic, /dynamic                             -> ISR             (expect ISR)
