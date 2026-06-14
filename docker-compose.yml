@@ -1,0 +1,73 @@
+# Adaptive Rendering Engine — Docker-based private server (docs 3 & 4).
+#
+# Topology (see 6_technology-and-docker-guide.md):
+#   proxy (nginx) ──▶ origin            :8080  → http://localhost:8080
+#   edge-node-1 (ARE, +20ms, own cache) :8081  → http://localhost:8081
+#   edge-node-2 (ARE, +80ms, own cache) :8082  → http://localhost:8082
+#   redis (shared edge cache)           internal only
+#
+# Edge nodes run the SAME image as origin but self-identify (SERVED_BY) and
+# inject latency (EDGE_LATENCY_MS), so they actually behave like edges — not a
+# mocked flag. All services share one private network and address each other by
+# service name. Only proxy + edge ports are published; nothing needs a public IP.
+
+services:
+  origin:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: are:latest
+    environment:
+      PORT: 3000
+      SERVED_BY: origin
+      EDGE_LATENCY_MS: 0
+      REDIS_URL: redis://redis:6379
+      CACHE_TTL_MS: 30000
+    volumes:
+      - ./public/ssg:/app/public/ssg
+      - ./experiments/results/raw-data:/app/experiments/results/raw-data
+    depends_on:
+      - redis
+
+  edge-node-1:
+    image: are:latest
+    environment:
+      PORT: 3000
+      SERVED_BY: edge-node-1
+      EDGE_LATENCY_MS: 20
+      REDIS_URL: redis://redis:6379
+      CACHE_TTL_MS: 15000
+    ports:
+      - "8081:3000"
+    depends_on:
+      - origin
+      - redis
+
+  edge-node-2:
+    image: are:latest
+    environment:
+      PORT: 3000
+      SERVED_BY: edge-node-2
+      EDGE_LATENCY_MS: 80
+      REDIS_URL: redis://redis:6379
+      CACHE_TTL_MS: 15000
+    ports:
+      - "8082:3000"
+    depends_on:
+      - origin
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+  proxy:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./docker/nginx/proxy.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - origin
+      - edge-node-1
+      - edge-node-2

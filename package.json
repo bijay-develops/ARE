@@ -1,0 +1,37 @@
+{
+  "name": "adaptive-rendering-engine",
+  "version": "0.1.0",
+  "description": "Adaptive Rendering Engine (ARE) — a runtime that selects the optimal rendering strategy per request.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server/server.ts",
+    "start": "node dist/server/server.js",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "tsc -p tsconfig.json",
+    "build:client": "tsx scripts/build-client.ts",
+    "build:ssg": "tsx scripts/build-ssg.ts",
+    "report": "tsx scripts/generate-report.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "esbuild": "^0.23.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "optionalDependencies": {
+    "ioredis": "^5.4.1"
+  }
+}

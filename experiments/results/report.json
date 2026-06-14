@@ -1,0 +1,56 @@
+[
+  {
+    "strategy": "SSG",
+    "count": 1,
+    "avgTtfbMs": 1.16,
+    "avgRenderMs": 0.65,
+    "avgTotalMs": 1.81,
+    "cacheHitRate": 1,
+    "avgBytes": 1199
+  },
+  {
+    "strategy": "CSR",
+    "count": 2,
+    "avgTtfbMs": 0.14,
+    "avgRenderMs": 0.09,
+    "avgTotalMs": 0.24,
+    "cacheHitRate": 0,
+    "avgBytes": 401
+  },
+  {
+    "strategy": "ISR",
+    "count": 3,
+    "avgTtfbMs": 0.45,
+    "avgRenderMs": 0.32,
+    "avgTotalMs": 0.76,
+    "cacheHitRate": 1,
+    "avgBytes": 1219
+  },
+  {
+    "strategy": "SSR",
+    "count": 1,
+    "avgTtfbMs": 10.99,
+    "avgRenderMs": 0.13,
+    "avgTotalMs": 11.13,
+    "cacheHitRate": 0,
+    "avgBytes": 1217
+  },
+  {
+    "strategy": "STREAMING_SSR",
+    "count": 3,
+    "avgTtfbMs": 8.35,
+    "avgRenderMs": 0.6,
+    "avgTotalMs": 8.95,
+    "cacheHitRate": 0,
+    "avgBytes": 20882
+  },
+  {
+    "strategy": "EDGE_ISR",
+    "count": 1,
+    "avgTtfbMs": 2.28,
+    "avgRenderMs": 0.33,
+    "avgTotalMs": 2.6,
+    "cacheHitRate": 1,
+    "avgBytes": 1234
+  }
+]
