@@ -1,6 +1,7 @@
 import type { CacheManager } from '../../cache/cache-manager.js';
 import type {
   PageModule,
+  RenderMeta,
   RenderResult,
   RenderStrategy,
   RequestContext,
@@ -23,11 +24,18 @@ export class ISRStrategy implements RenderStrategy {
     return `${this.cacheKeyPrefix}:${page.route}`;
   }
 
-  async render(ctx: RequestContext, page: PageModule, cache: CacheManager): Promise<RenderResult> {
+  async render(
+    ctx: RequestContext,
+    page: PageModule,
+    cache: CacheManager,
+    meta?: RenderMeta,
+  ): Promise<RenderResult> {
+    // The cache key is per-route and ignores the query string, so simulated
+    // contexts (?net=, ?device=, …) intentionally share one cached entry.
     const key = this.key(page);
     const lookup = await cache.lookup(key);
 
-    const produce = async () => (await renderSSR(ctx, page, this.name)).html;
+    const produce = async () => (await renderSSR(ctx, page, this.name, meta)).html;
 
     if (lookup.entry && !lookup.stale) {
       return this.result(lookup.entry.value, true, 'fresh');

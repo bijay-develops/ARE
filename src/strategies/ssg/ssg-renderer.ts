@@ -1,5 +1,11 @@
 import type { CacheManager } from '../../cache/cache-manager.js';
-import type { PageModule, RenderResult, RenderStrategy, RequestContext } from '../../core/types.js';
+import type {
+  PageModule,
+  RenderMeta,
+  RenderResult,
+  RenderStrategy,
+  RequestContext,
+} from '../../core/types.js';
 import { renderSSR } from '../ssr/ssr-renderer.js';
 import { readSSG, writeSSG } from './ssg-cache.js';
 
@@ -11,7 +17,15 @@ import { readSSG, writeSSG } from './ssg-cache.js';
 export class SSGStrategy implements RenderStrategy {
   readonly name = 'SSG' as const;
 
-  async render(ctx: RequestContext, page: PageModule, _cache: CacheManager): Promise<RenderResult> {
+  async render(
+    ctx: RequestContext,
+    page: PageModule,
+    _cache: CacheManager,
+    meta?: RenderMeta,
+  ): Promise<RenderResult> {
+    // NOTE: the prebuilt artifact is byte-identical for every request, so the
+    // reason baked into it is the one from prebuild time — not `meta.reason`.
+    // That staleness is inherent to SSG; the live reason still ships as a header.
     const prebuilt = await readSSG(page.route);
     if (prebuilt) {
       return {
@@ -21,7 +35,7 @@ export class SSGStrategy implements RenderStrategy {
         fromCache: true,
       };
     }
-    const { html } = await renderSSR(ctx, page, this.name);
+    const { html } = await renderSSR(ctx, page, this.name, meta);
     await writeSSG(page.route, html);
     return {
       status: 200,

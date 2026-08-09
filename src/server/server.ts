@@ -66,7 +66,14 @@ async function peekCacheState(page: PageModule): Promise<CacheState> {
 async function prebuildStatic(): Promise<void> {
   for (const page of allPages()) {
     if (page.volatility === 'static') {
-      const { html } = await renderSSR(syntheticCtx(page), page, 'SSG');
+      // Rule 1 only serves this artifact when the cache is usable, so embed the
+      // context it will actually be served under — not the cold cache that
+      // exists at prebuild time. Otherwise the page reports a context that
+      // contradicts the SSG badge it is served with.
+      const ctx = { ...syntheticCtx(page), cacheState: 'fresh' as const };
+      const { html } = await renderSSR(ctx, page, 'SSG', {
+        reason: 'Static content with usable cache - serve pre-built (SSG)',
+      });
       await writeSSG(page.route, html);
       logger.are(`Prebuilt SSG: ${page.route}`);
     }
@@ -158,8 +165,11 @@ const server = http.createServer(async (req, res) => {
       return void res.end('<h1>404 — no such page</h1>');
     }
 
-    // Simulate network conditions (header-driven) + edge latency (container-driven).
-    const speed = (headers['x-network-speed'] as any) ?? 'medium';
+    // Simulate network conditions + edge latency (container-driven). Honours the
+    // ?net= alias too, so the simulated delay matches the strategy that is chosen.
+    const speed = (headers['x-network-speed'] ??
+      queryOf(req).get('net') ??
+      'medium') as any;
     await sleep(delayForNetwork(speed));
     if (config.edgeLatencyMs > 0) await sleep(config.edgeLatencyMs);
 

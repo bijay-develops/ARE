@@ -17,8 +17,48 @@ export interface ServerSignals {
   cacheState: CacheState;
 }
 
+/**
+ * Query-string aliases for the X-* control headers. Browsers cannot set custom
+ * headers on a normal navigation, so these let a plain link or reload trigger a
+ * different strategy — which is what makes the in-page controls work.
+ */
+export const QUERY_ALIASES = {
+  'x-network-speed': 'net',
+  'x-device-type': 'device',
+  'x-cache-state': 'cache',
+  'x-load-level': 'load',
+  'x-data-volatility': 'volatility',
+  'x-data-size': 'size',
+  'x-served-by': 'served',
+} as const;
+
 function header(headers: Record<string, string>, name: string): string | undefined {
   return headers[name.toLowerCase()];
+}
+
+export function queryParams(url: string): URLSearchParams {
+  return new URL(url, 'http://localhost').searchParams;
+}
+
+/**
+ * Resolve one control signal. Precedence: header > query > undefined.
+ * Headers remain the documented control surface (doc 5); the query string is
+ * the browser-usable layer over the same values.
+ */
+function override(
+  headers: Record<string, string>,
+  query: URLSearchParams,
+  headerName: keyof typeof QUERY_ALIASES,
+): string | undefined {
+  return header(headers, headerName) ?? query.get(QUERY_ALIASES[headerName]) ?? undefined;
+}
+
+/** Resolve a signal constrained to a fixed set of values, else undefined. */
+function oneOf<T extends string>(
+  value: string | undefined,
+  allowed: readonly T[],
+): T | undefined {
+  return allowed.includes(value as T) ? (value as T) : undefined;
 }
 
 function classifyLoad(concurrency: number): LoadLevel {
@@ -28,36 +68,14 @@ function classifyLoad(concurrency: number): LoadLevel {
 }
 
 function inferDevice(headers: Record<string, string>): DeviceType {
-  const explicit = header(headers, 'x-device-type');
-  if (explicit === 'mobile' || explicit === 'desktop') return explicit;
   const ua = (header(headers, 'user-agent') ?? '').toLowerCase();
   return /mobi|android|iphone|ipad/.test(ua) ? 'mobile' : 'desktop';
 }
 
-function inferNetwork(headers: Record<string, string>): NetworkSpeed {
-  const explicit = header(headers, 'x-network-speed');
-  if (explicit === 'slow' || explicit === 'medium' || explicit === 'fast') return explicit;
-  return 'medium';
-}
-
-function inferVolatility(
-  headers: Record<string, string>,
-  page: PageModule,
-): Volatility {
-  const explicit = header(headers, 'x-data-volatility');
-  if (explicit === 'static' || explicit === 'periodic' || explicit === 'realtime') return explicit;
-  return page.volatility;
-}
-
-function inferHeavy(headers: Record<string, string>, page: PageModule): boolean {
-  const explicit = header(headers, 'x-data-size');
-  if (explicit) return explicit.toLowerCase() === 'heavy';
-  return page.heavy === true;
-}
-
 /**
  * Builds a fully-populated RequestContext. OBSERVATION ONLY — no rendering,
- * no strategy decision. Control headers (doc 5) override inference.
+ * no strategy decision. Control headers (doc 5) and their query aliases
+ * override inference.
  */
 export function analyze(
   url: string,
@@ -65,28 +83,25 @@ export function analyze(
   page: PageModule,
   signals: ServerSignals,
 ): RequestContext {
-  const explicitCache = header(headers, 'x-cache-state');
-  const cacheState: CacheState =
-    explicitCache === 'fresh' || explicitCache === 'stale' || explicitCache === 'cold'
-      ? explicitCache
-      : signals.cacheState;
+  const query = queryParams(url);
+  const pick = (name: keyof typeof QUERY_ALIASES) => override(headers, query, name);
 
-  const explicitLoad = header(headers, 'x-load-level');
-  const load: LoadLevel =
-    explicitLoad === 'low' || explicitLoad === 'medium' || explicitLoad === 'high'
-      ? explicitLoad
-      : classifyLoad(signals.concurrency);
-
-  const servedBy = header(headers, 'x-served-by');
+  const size = pick('x-data-size');
+  const servedBy = pick('x-served-by');
 
   return {
     url,
-    networkSpeed: inferNetwork(headers),
-    device: inferDevice(headers),
-    cacheState,
-    load,
-    volatility: inferVolatility(headers, page),
-    heavyPayload: inferHeavy(headers, page),
+    networkSpeed:
+      oneOf<NetworkSpeed>(pick('x-network-speed'), ['slow', 'medium', 'fast']) ?? 'medium',
+    device: oneOf<DeviceType>(pick('x-device-type'), ['mobile', 'desktop']) ?? inferDevice(headers),
+    cacheState:
+      oneOf<CacheState>(pick('x-cache-state'), ['fresh', 'stale', 'cold']) ?? signals.cacheState,
+    load: oneOf<LoadLevel>(pick('x-load-level'), ['low', 'medium', 'high']) ??
+      classifyLoad(signals.concurrency),
+    volatility:
+      oneOf<Volatility>(pick('x-data-volatility'), ['static', 'periodic', 'realtime']) ??
+      page.volatility,
+    heavyPayload: size ? size.toLowerCase() === 'heavy' : page.heavy === true,
     isEdge: Boolean(servedBy && servedBy !== 'origin'),
     rawHeaders: headers,
   };

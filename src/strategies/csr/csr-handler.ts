@@ -1,5 +1,12 @@
 import type { CacheManager } from '../../cache/cache-manager.js';
-import type { PageModule, RenderResult, RenderStrategy, RequestContext } from '../../core/types.js';
+import type {
+  PageModule,
+  RenderMeta,
+  RenderResult,
+  RenderStrategy,
+  RequestContext,
+} from '../../core/types.js';
+import { toPublicContext } from '../../core/types.js';
 import { htmlShell } from '../../utils/helpers.js';
 
 /**
@@ -10,7 +17,14 @@ import { htmlShell } from '../../utils/helpers.js';
 export class CSRStrategy implements RenderStrategy {
   readonly name = 'CSR' as const;
 
-  async render(_ctx: RequestContext, page: PageModule, _cache: CacheManager): Promise<RenderResult> {
+  async render(
+    ctx: RequestContext,
+    page: PageModule,
+    _cache: CacheManager,
+    meta?: RenderMeta,
+  ): Promise<RenderResult> {
+    // No server markup, but the decision still travels with the shell so the
+    // client-rendered page can explain why it was given a shell at all.
     const html = htmlShell({
       title: page.title,
       route: page.route,
@@ -18,6 +32,8 @@ export class CSRStrategy implements RenderStrategy {
       bodyHtml: '', // empty shell — client renders everything
       data: null, // withhold data → client fetches it
       includeClient: true,
+      reason: meta?.reason,
+      context: toPublicContext(ctx),
     });
     return {
       status: 200,

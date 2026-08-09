@@ -46,13 +46,18 @@ export class Engine {
     );
     logger.are(`Strategy selected: ${trace.selected} — ${trace.reason}`);
 
-    // 3) RENDER — delegate to the chosen pluggable strategy
+    // 3) RENDER — delegate to the chosen pluggable strategy. The reason travels
+    // with the render so the page can state WHY it was produced this way.
     let result: RenderResult;
     try {
-      result = await this.deps.registry.get(trace.selected).render(ctx, page, this.deps.cache);
+      result = await this.deps.registry
+        .get(trace.selected)
+        .render(ctx, page, this.deps.cache, { reason: trace.reason });
     } catch (err) {
       logger.error(`Render failed for ${trace.selected}: ${(err as Error).message}; falling back to SSR`);
-      result = await this.deps.registry.get('SSR').render(ctx, page, this.deps.cache);
+      result = await this.deps.registry.get('SSR').render(ctx, page, this.deps.cache, {
+        reason: `${trace.selected} render failed - fell back to SSR`,
+      });
     }
 
     // 4) RESPOND — always advertise the strategy + reason

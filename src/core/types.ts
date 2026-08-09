@@ -45,10 +45,57 @@ export interface PageModule {
   getData?: (ctx: RequestContext) => Promise<unknown>;
 }
 
+/**
+ * Decision output handed down to the renderer so the page can explain itself.
+ * The engine is the single source of truth — strategies never re-derive this.
+ */
+export interface RenderMeta {
+  /** Human-readable rule that fired (DecisionTrace.reason). */
+  reason: string;
+}
+
 export interface RenderStrategy {
   readonly name: StrategyName;
   /** Render the page for this context. May read/write the provided cache. */
-  render(ctx: RequestContext, page: PageModule, cache: CacheManager): Promise<RenderResult>;
+  render(
+    ctx: RequestContext,
+    page: PageModule,
+    cache: CacheManager,
+    meta?: RenderMeta,
+  ): Promise<RenderResult>;
+}
+
+/** The trimmed context embedded in the page so the UI can show what was observed. */
+export interface PublicContext {
+  url: string;
+  networkSpeed: NetworkSpeed;
+  device: DeviceType;
+  cacheState: CacheState;
+  load: LoadLevel;
+  volatility: Volatility;
+  heavyPayload: boolean;
+  isEdge: boolean;
+}
+
+export function toPublicContext(ctx: RequestContext): PublicContext {
+  return {
+    url: ctx.url,
+    networkSpeed: ctx.networkSpeed,
+    device: ctx.device,
+    cacheState: ctx.cacheState,
+    load: ctx.load,
+    volatility: ctx.volatility,
+    heavyPayload: ctx.heavyPayload,
+    isEdge: ctx.isEdge,
+  };
+}
+
+/** Props every page component receives, from both the server and the client. */
+export interface PageProps {
+  data: any;
+  strategy?: string;
+  reason?: string;
+  context?: PublicContext;
 }
 
 export interface DecisionTrace {

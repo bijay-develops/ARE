@@ -1,4 +1,5 @@
 import React from 'react';
+import { PAGE_STYLESHEET } from '../../utils/helpers.js';
 
 /**
  * Full-document wrapper used for Streaming SSR. React streams this tree with
@@ -8,10 +9,12 @@ import React from 'react';
 export function StreamDocument({
   title,
   strategy,
+  reason,
   children,
 }: {
   title: string;
   strategy: string;
+  reason?: string;
   children?: React.ReactNode;
 }) {
   return (
@@ -21,6 +24,8 @@ export function StreamDocument({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title}</title>
         <meta name="x-rendering-strategy" content={strategy} />
+        {reason && <meta name="x-decision-reason" content={reason} />}
+        <link rel="stylesheet" href={PAGE_STYLESHEET} />
       </head>
       <body>
         <div id="are-root">{children}</div>

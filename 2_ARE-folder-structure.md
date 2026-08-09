@@ -119,8 +119,9 @@ adaptive-rendering-engine/
 │   │   │   ├── dynamic.tsx       # High volatility → expect SSR/ISR
 │   │   │   └── heavy.tsx         # Large/interactive → expect Streaming SSR/CSR
 │   │   ├── components/
-│   │   │   ├── header.tsx
-│   │   │   └── content.tsx
+│   │   │   ├── header.tsx           # Page header + strategy badge
+│   │   │   └── strategy-console.tsx # In-page decision console (reuses STRATEGY_RULES)
+│   │   ├── are-page.css          # Shared styling for engine-rendered pages
 │   │   └── client/
 │   │       └── entry-client.tsx  # Hydration entry, bundled by esbuild
 │   │
@@ -155,6 +156,7 @@ adaptive-rendering-engine/
 │
 ├── tests/
 │   ├── decision-engine.test.ts   # Context → expected strategy (core proof)
+│   ├── context-analyzer.test.ts  # Header/query overrides → context (URL re-triggering)
 │   ├── cache.test.ts
 │   └── rendering.test.ts
 │
