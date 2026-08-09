@@ -23,9 +23,6 @@ services:
       EDGE_LATENCY_MS: 0
       REDIS_URL: redis://redis:6379
       CACHE_TTL_MS: 30000
-    volumes:
-      - ./public/ssg:/app/public/ssg
-      - ./experiments/results/raw-data:/app/experiments/results/raw-data
     depends_on:
       - redis
 
@@ -62,9 +59,9 @@ services:
     command: ["redis-server", "--save", "", "--appendonly", "no"]
 
   proxy:
-    image: nginx:1.27-alpine
-    volumes:
-      - ./docker/nginx/proxy.conf:/etc/nginx/nginx.conf:ro
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
     ports:
       - "8080:80"
     depends_on:
