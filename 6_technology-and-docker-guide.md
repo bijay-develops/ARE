@@ -1,6 +1,6 @@
 # 6. Technology & Docker Guide — How the ARE Actually Runs
 
-This document explains **what technology we use, why, and exactly how Docker powers the project**: how the containers map to the architecture, how they connect, and how each one helps us execute the tasks in `1_project-details.md`. Read this together with `2_ARE-folder-structure.md` (where things live) and `7_code-generation-prompt.md` (the build contracts).
+This document explains **what technology we use, why, and exactly how Docker powers the project**: how the containers map to the architecture, how they connect, and how each one helps us execute the tasks in `1_PROJECT-PROPOSAL.md`. Read this together with `2_STRUCTURE-AND-STACK.md` (where things live) and `7_code-generation-prompt.md` (the build contracts).
 
 ---
 
@@ -95,7 +95,7 @@ We run **one image** (the ARE Node service, built from `docker/Dockerfile`) as *
 
 ## 6.5 How Docker helps us *execute each task* in document 1
 
-| Task from `1_project-details.md` | How Docker makes it possible |
+| Task from `1_PROJECT-PROPOSAL.md` | How Docker makes it possible |
 | --- | --- |
 | **Per-request strategy selection** | The origin container runs the engine; `curl`/`ab` hit the proxy → we observe live decisions. |
 | **Edge-ISR (simulated)** | Real, separate edge containers with their own caches and latency — not a fake in-code flag. |

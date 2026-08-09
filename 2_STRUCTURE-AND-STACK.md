@@ -181,7 +181,7 @@ adaptive-rendering-engine/
 
 ---
 
-# ✅ Coverage check — can this structure execute every task in `1_project-details.md`?
+# ✅ Coverage check — can this structure execute every task in `1_PROJECT-PROPOSAL.md`?
 
 | Requirement (doc 1) | Where it lives | Status |
 | --- | --- | --- |

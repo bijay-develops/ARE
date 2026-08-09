@@ -8,7 +8,7 @@ This file is the **ready-to-use prompt + build contract** for generating the Ada
 
 ## 7.1 The prompt to paste next chat
 
-> You are a senior TypeScript/Node engineer building the **Adaptive Rendering Engine (ARE)** described in `1_project-details.md`. Implement the project **exactly** per the folder structure in `2_ARE-folder-structure.md`, the Docker design in `6_technology-and-docker-guide.md`, and the contracts in `7_code-generation-prompt.md` (this file).
+> You are a senior TypeScript/Node engineer building the **Adaptive Rendering Engine (ARE)** described in `1_PROJECT-PROPOSAL.md`. Implement the project **exactly** per the folder structure in `2_STRUCTURE-AND-STACK.md`, the Docker design in `6_technology-and-docker-guide.md`, and the contracts in `7_code-generation-prompt.md` (this file).
 >
 > **Hard rules:**
 > 1. Stack is fixed: Node 20+, TypeScript, React 18, native `http`, esbuild, Vitest, nginx, Docker Compose. No Express, no Next.js.
@@ -252,7 +252,7 @@ curl -s -D- -o/dev/null -H "X-Load-Level: high"          http://localhost:8080/d
 ---
 
 **Reading order for the next session:** `0_PROJECT-CONTEXT.md` (verified current state) →
-`1_project-details.md` → `2_ARE-folder-structure.md` → `6_technology-and-docker-guide.md` →
+`1_PROJECT-PROPOSAL.md` → `2_STRUCTURE-AND-STACK.md` → `6_technology-and-docker-guide.md` →
 this file. Documents 3, 4, 5 are the rationale/validation references.
 
 > **Status:** this document was the *build contract* and the build is complete. Where it

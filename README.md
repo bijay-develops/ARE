@@ -7,7 +7,7 @@ volatility. Built as *technology* (an engine), open-source, zero-budget.
 
 > **Start with [`0_PROJECT-CONTEXT.md`](0_PROJECT-CONTEXT.md)** — the verified single source
 > of truth (architecture, rule table, trigger matrix, caveats, evidence chain).
-> Then: `1_project-details.md` (problem), `2_ARE-folder-structure.md` (layout),
+> Then: `1_PROJECT-PROPOSAL.md` (problem), `2_STRUCTURE-AND-STACK.md` (layout),
 > `6_technology-and-docker-guide.md` (stack + Docker), `7_code-generation-prompt.md`
 > (contracts). Server choice & validation method: docs 3–5. Run it: docs 8–9. Demo it: doc 10.
 

@@ -90,7 +90,7 @@ docker compose down            # stop; add -v to also wipe caches/volumes
 
 ---
 
-## C. The five test scenarios from `1_project-details.md` §5
+## C. The five test scenarios from `1_PROJECT-PROPOSAL.md` §5
 
 ### C.1 Functional — correct strategy selection
 ```bash

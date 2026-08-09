@@ -360,8 +360,8 @@ deleted, so it will not run as-is. It is retained as tooling for the future repo
 
 ## 16. Reading order
 
-**To understand the project:** this file → `1_project-details.md` (problem framing) →
-`2_ARE-folder-structure.md` (layout) → `6_technology-and-docker-guide.md` (stack + Docker).
+**To understand the project:** this file → `1_PROJECT-PROPOSAL.md` (problem framing) →
+`2_STRUCTURE-AND-STACK.md` (layout) → `6_technology-and-docker-guide.md` (stack + Docker).
 
 **To run it:** `9_ZERO-TO-RUNNING.md` → `8_RUNBOOK.md`.
 
