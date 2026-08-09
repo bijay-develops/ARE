@@ -54,6 +54,7 @@ export interface RequestContext {
   cacheState: CacheState;
   load: LoadLevel;          // derived from concurrent in-flight requests
   volatility: Volatility;   // declared per page (see frontend pages)
+  heavyPayload: boolean;    // drives rule 7 (STREAMING_SSR)
   isEdge: boolean;          // true when served behind an edge node
   rawHeaders: Record<string, string>;
 }
@@ -65,17 +66,47 @@ export interface RenderResult {
   fromCache: boolean;
 }
 
+/** Decision output handed DOWN to the renderer so the page can explain itself.
+ *  The engine is the single source of truth — strategies never re-derive it. */
+export interface RenderMeta {
+  reason: string;                      // DecisionTrace.reason
+}
+
 export interface RenderStrategy {
   readonly name: StrategyName;
   /** Render the page for this context. May read/write the provided cache. */
-  render(ctx: RequestContext, page: PageModule, cache: CacheManager): Promise<RenderResult>;
+  render(
+    ctx: RequestContext,
+    page: PageModule,
+    cache: CacheManager,
+    meta?: RenderMeta,
+  ): Promise<RenderResult>;
 }
 
 export interface PageModule {
   route: string;                 // e.g. "/static"
   volatility: Volatility;
+  heavy?: boolean;               // marks a large/interactive page (rule 7)
+  title: string;
   Component: React.ComponentType<any>;
   getData?: (ctx: RequestContext) => Promise<unknown>;
+}
+
+/** Trimmed context embedded in the HTML so the in-page console can show it. */
+export interface PublicContext {
+  url: string; networkSpeed: NetworkSpeed; device: DeviceType;
+  cacheState: CacheState; load: LoadLevel; volatility: Volatility;
+  heavyPayload: boolean; isEdge: boolean;
+}
+export function toPublicContext(ctx: RequestContext): PublicContext;
+
+/** Props every page component receives, from BOTH server and client.
+ *  entry-client.tsx must pass the identical set or hydration mismatches. */
+export interface PageProps {
+  data: any;
+  strategy?: string;
+  reason?: string;
+  context?: PublicContext;
 }
 
 export interface DecisionTrace {       // returned with every decision for proof/logging
@@ -85,12 +116,24 @@ export interface DecisionTrace {       // returned with every decision for proof
 }
 ```
 
+**Reason threading (added after the initial build).** `Engine.handle()` passes
+`{ reason: trace.reason }` into `render(...)`; strategies forward it to `renderSSR`, which
+embeds it as a `<meta name="x-decision-reason">` tag, as `window.__ARE_REASON__`, and as a
+component prop. The error path passes a reason that names the fallback explicitly, so a
+page never misreports why it was produced.
+
 ---
 
 ## 7.4 Context analyzer (`src/core/context-analyzer.ts`)
 
-- Reads control headers (doc 5): `X-Network-Speed`, `X-Device-Type`, `X-Cache-State`, `X-Load-Level`, `X-Data-Volatility`.
-- Falls back to inference when a header is absent: device from `User-Agent`; network defaults to `medium`; load from a live in-process counter of concurrent requests; volatility from the matched `PageModule.volatility`; cache state from the cache layer.
+- Reads control headers (doc 5): `X-Network-Speed`, `X-Device-Type`, `X-Cache-State`, `X-Load-Level`, `X-Data-Volatility`, `X-Data-Size`, `X-Served-By`.
+- Also reads **query-string aliases** of the same signals, exported as `QUERY_ALIASES`:
+  `?net=`, `?device=`, `?cache=`, `?load=`, `?volatility=`, `?size=`, `?served=`.
+  Precedence is **header > query > inference**. This layer exists because a browser cannot
+  attach custom headers to a normal navigation — without it, no reload or bookmarkable link
+  could change the strategy, and the in-page controls could only predict rather than re-trigger.
+- Values outside the permitted set are ignored and fall through to inference (so `?net=hyperspeed` is not an error, just not an override).
+- Falls back to inference when nothing is supplied: device from `User-Agent`; network defaults to `medium`; load from a live in-process counter of concurrent requests; volatility from the matched `PageModule.volatility`; cache state from the cache layer; `isEdge` from the container's `SERVED_BY`.
 - Returns a fully-populated `RequestContext`. **No rendering, no decisions** — only observation.
 
 ---
@@ -140,16 +183,22 @@ The engine must be **deterministic and dependency-free** so `tests/decision-engi
 
 ## 7.7 Strategy modules (`src/strategies/*`) — all implement `RenderStrategy`
 
-| Module | React API | Cache behavior |
-| --- | --- | --- |
-| `ssg` | `renderToStaticMarkup` (build-time) | Serve pre-built HTML from `public/`; build via `scripts/build-ssg.ts` |
-| `ssr` | `renderToString` per request | No cache |
-| `streaming-ssr` | `renderToPipeableStream` + `<Suspense>` | No cache; streams |
-| `isr` | `renderToString`, cache with TTL | Serve cached; revalidate in background after `ISR_TTL_MS` (stale-while-revalidate) |
-| `csr` | minimal shell + `<script src="/client.js">` | Shell cacheable; data fetched client-side |
-| `edge-isr` | like ISR but reads/writes the **edge** cache (Redis) | Per-edge cache, short TTL |
+| Module | React API | Cache behavior | Marker header |
+| --- | --- | --- | --- |
+| `ssg` | `renderToString` via `renderSSR`, at prebuild | Serve pre-built HTML from `public/ssg/<route>.html`; builds on demand if absent. The server prebuilds every static page at startup. | `x-ssg` |
+| `ssr` | `renderToString` per request | No cache | `x-render-bytes` |
+| `streaming-ssr` | `renderToPipeableStream` + `<Suspense>` | No cache; pipes a `PassThrough` straight to the response | `x-streaming` |
+| `isr` | `renderToString`, cache with TTL | fresh → serve; stale → serve + background revalidate; cold → render, cache, serve | `x-isr-cache` |
+| `csr` | minimal shell + `<script src="/client.js">` | Withholds data (`__ARE_DATA__=null`); client fetches `/api/data` | `x-csr` |
+| `edge-isr` | **extends `ISRStrategy`**, overriding only the cache key via `edgeKey()` | Per-edge namespace, shared through Redis when configured, shorter TTL | `x-isr-cache` |
 
-CSR/partial hydration uses `frontend/client/entry-client.tsx` → `hydrateRoot`, bundled to `public/client.js` by `scripts/build-client.ts` (esbuild).
+CSR/hydration uses `frontend/client/entry-client.tsx` → `hydrateRoot` (data present) or
+`createRoot` (CSR shell), bundled to `public/client.js` by `scripts/build-client.ts` (esbuild).
+
+> **Note vs. the original spec:** SSG uses `renderToString` (through the shared `renderSSR`
+> helper) rather than `renderToStaticMarkup`, because the prebuilt artifact must remain
+> hydratable — it embeds `__ARE_DATA__` so the page is interactive after load. Edge-ISR is
+> implemented by *inheritance* from ISR rather than duplicated logic.
 
 ---
 
@@ -181,22 +230,31 @@ curl -s -D- -o/dev/null -H "X-Load-Level: high"          http://localhost:8080/d
 5. **Cache** — `cache-manager.ts`, `file-cache.ts`, `memory-cache.ts`, `redis-cache.ts`, `invalidation.ts`. *Verify:* ISR cold-vs-warm timing differs; cache test passes.
 6. **Metrics** — collector, timing, resource-usage, report-generator. *Verify:* a request writes a metrics record.
 7. **Frontend + bundle** — pages, components, client entry; `build-client.ts`. *Verify:* `/dynamic` hydrates in a browser (CSR path).
-8. **Docker** — `Dockerfile`, `docker-compose.yml`, `nginx/edge.conf`, `nginx/proxy.conf`. *Verify:* `docker compose up --build`; `curl localhost:8080/static`.
+8. **Docker** — `docker/Dockerfile`, `docker-compose.yml`, `docker/nginx/Dockerfile`, `docker/nginx/proxy.conf`. Edges are the *same* ARE image with different `SERVED_BY`/`EDGE_LATENCY_MS` — **no `edge.conf`**. *Verify:* `docker compose up -d --build`; `curl -sI localhost:8080/static`.
 9. **Validation + experiments** — the scripts in §7.8; run them, save outputs to `experiments/results/`.
 
 ---
 
-## 7.10 Acceptance criteria (definition of done)
+## 7.10 Acceptance criteria — **all met** (verified 2026-08-09)
 
-- [ ] `docker compose up --build` brings up origin + 2 edges + proxy + redis; `http://localhost:8080` responds.
-- [ ] Same URL returns **different** `X-Rendering-Strategy` values as `X-*` headers change, matching §7.5.
-- [ ] `[ARE] Strategy selected: <X>` appears in `docker compose logs origin` for every request.
-- [ ] All six strategies render correctly; Streaming SSR actually streams (chunked), CSR hydrates in the browser.
-- [ ] ISR/Edge-ISR show warm-cache speed-up; high load forces a cached strategy.
-- [ ] `npx vitest run` passes (every decision rule row covered).
-- [ ] Metrics (TTFB, render time, CPU/mem, cache hit/miss) are written to `experiments/results/`.
-- [ ] `scripts/switch-test.sh`, `verify-headers.sh`, `load-test.sh` run and produce examiner-ready output.
+- [x] `docker compose up -d --build` brings up origin + 2 edges + proxy + redis; `http://localhost:8080` responds.
+- [x] Same URL returns **different** `X-Rendering-Strategy` values as `X-*` headers change, matching §7.5.
+- [x] Same result achievable from **plain URLs** via query aliases (browser-testable).
+- [x] `[ARE] Strategy selected: <X>` appears in `docker compose logs origin` for every request.
+- [x] All six strategies render correctly; Streaming SSR actually streams (`Transfer-Encoding: chunked` + `x-streaming: true`); CSR hydrates in the browser.
+- [x] ISR/Edge-ISR show warm-cache behaviour (`x-isr-cache: fresh|stale-revalidating|miss`); high load forces a cached strategy.
+- [x] `npm test` passes — **28 tests** across 4 files, every decision rule row covered.
+- [x] Metrics (TTFB, render time, CPU/mem, cache hit/miss) written to `experiments/results/raw-data/metrics.ndjson`.
+- [x] `scripts/switch-test.sh`, `verify-headers.sh`, `load-test.sh` run and produce examiner-ready output.
+      ⚠️ *Caveat:* `switch-test.sh` row 6 yields EDGE_ISR only against a direct origin; through the Docker proxy it yields SSR (nginx stamps `X-Served-By: origin`). See `0_PROJECT-CONTEXT.md` §7.1.
+- [x] Pages render an in-page decision console; hydration produces **zero** React warnings.
 
 ---
 
-**Reading order for the next session:** `1_project-details.md` → `2_ARE-folder-structure.md` → `6_technology-and-docker-guide.md` → this file. Documents 3, 4, 5 are the rationale/validation references.
+**Reading order for the next session:** `0_PROJECT-CONTEXT.md` (verified current state) →
+`1_project-details.md` → `2_ARE-folder-structure.md` → `6_technology-and-docker-guide.md` →
+this file. Documents 3, 4, 5 are the rationale/validation references.
+
+> **Status:** this document was the *build contract* and the build is complete. Where it
+> describes intent and where `0_PROJECT-CONTEXT.md` describes verified behaviour, the
+> latter wins. §7.3, §7.4, §7.7 and §7.10 above have been reconciled with the shipped code.

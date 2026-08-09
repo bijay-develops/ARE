@@ -1,30 +1,35 @@
-# 9. Zero → Running — Complete Beginner Guide (Fedora 43)
+# 9. Zero → Running — Complete Beginner Guide
 
 This guide takes you from a **fresh machine** to a **fully running Adaptive
 Rendering Engine**, explaining what each command does and why. Follow top to
 bottom the first time; later use it as a reference.
 
+> **Platform.** Install commands below are written for **Fedora**; the project also runs on
+> **macOS** (where the stack is currently developed) and any Linux with Docker. Only the
+> installation syntax differs — `docker compose`, `npm` and every URL behave identically.
+> macOS equivalents: `brew install node`, Docker Desktop (bundles Compose), `ab` preinstalled.
+
 ---
 
-## ⚡ Your machine status (checked 2026-06-14)
+## ⚡ Check your machine
 
-| Tool | Needed | You have | Action |
-| --- | --- | --- | --- |
-| Node.js | ≥ 20 | v25.2.1 ✅ | none |
-| npm | any | 11.6.2 ✅ | none |
-| git | any | 2.54 ✅ | none |
-| Docker engine | any | 29.5.2 ✅ (daemon running, you're in `docker` group) | none |
-| Apache Bench (`ab`) | for load tests | installed ✅ | none |
-| **Docker Compose** | for multi-container | **MISSING** ❌ | **install (Phase 0.3)** |
+```bash
+node --version          # need ≥ 20
+npm --version
+git --version
+docker --version
+docker compose version  # need Compose v2 — the one people are most often missing
+ab -V | head -1         # only needed for load tests
+```
 
-**Bottom line:** you can run everything *locally* right now (Phase 1). To run the
-full Docker private server (Phase 3) you only need to install Compose.
+Anything missing → install it in Phase 0. You can run everything *locally* (Phase 2) with
+just Node; Docker Compose is only needed for the multi-node private server (Phase 3).
 
 ---
 
 # Phase 0 — Installations (from absolute zero)
 
-> Skip any tool you already have (see table above). Commands are for Fedora 43.
+> Skip any tool you already have. Commands are for Fedora; see the platform note above.
 
 ## 0.1 Node.js + npm
 ```bash
@@ -73,8 +78,8 @@ ab -V | head -1
 # Phase 1 — Get the project & install dependencies
 
 ```bash
-cd /home/bijaybk/Projects/college-project/ARE      # the project root (already here)
-ls                                                  # you should see src/ docker/ package.json ...
+cd /path/to/ARE          # the project root (this repository)
+ls                       # you should see src/ docker/ package.json ...
 
 npm install        # reads package.json, downloads React/esbuild/etc into node_modules/
 ```
@@ -103,7 +108,7 @@ Leave this terminal running. You'll see:
 
 ## 2.3 Drive it from a SECOND terminal (client side)
 ```bash
-cd /home/bijaybk/Projects/college-project/ARE
+cd /path/to/ARE
 
 # The headline demo — same URLs, different strategies based on headers:
 BASE_URL=http://localhost:3000 bash scripts/switch-test.sh
@@ -120,7 +125,7 @@ This is the setup for your report/viva: it models a real CDN locally.
 
 ## 3.1 Bring the whole system up
 ```bash
-cd /home/bijaybk/Projects/college-project/ARE
+cd /path/to/ARE
 cp .env.example .env            # optional; compose has sane defaults
 docker compose up --build       # or: docker-compose up --build
 ```
@@ -173,9 +178,38 @@ curl -s -D- -o /dev/null \
 #   X-Cache-State:   fresh|stale|cold
 #   X-Load-Level:    low|medium|high
 #   X-Data-Volatility: static|periodic|realtime
-#   X-Data-Size:     heavy
-#   X-Served-By:     edge-node-1   (simulate an edge against any node)
+#   X-Data-Size:     heavy|light
+#   X-Served-By:     edge-node-1   (only honoured on a node the proxy doesn't stamp)
 ```
+
+### 4.1b The same controls as plain URLs (no curl needed)
+Every header has a query alias, because a browser cannot set custom headers on a normal
+navigation. **Precedence: header > query > inference.** Paste these straight into a browser:
+
+```
+http://localhost:8080/static                                    → SSG
+http://localhost:8080/static?cache=cold                         → SSR
+http://localhost:8080/static?volatility=periodic                → ISR
+http://localhost:8080/dynamic?net=fast&device=desktop           → CSR
+http://localhost:8080/dynamic?device=mobile                     → SSR
+http://localhost:8080/heavy                                     → STREAMING_SSR
+http://localhost:8080/heavy?net=slow                            → SSR
+http://localhost:8080/edge1/static?cache=cold                   → EDGE_ISR
+```
+
+| Header | Query alias |
+| --- | --- |
+| `X-Network-Speed` | `?net=` |
+| `X-Device-Type` | `?device=` |
+| `X-Cache-State` | `?cache=` |
+| `X-Load-Level` | `?load=` |
+| `X-Data-Volatility` | `?volatility=` |
+| `X-Data-Size` | `?size=` |
+| `X-Served-By` | `?served=` |
+
+Each page also renders an **interactive decision console** showing the rule that fired, the
+observed context, and a live rule table — change a dropdown and press *Apply & reload* to
+re-trigger the engine from the page itself.
 
 ## 4.2 Watch the engine's decisions (server side)
 ```bash
@@ -188,9 +222,15 @@ docker compose logs -f origin | grep '\[ARE\]'
 
 ## 4.3 Compare origin vs edge (proves edge behavior)
 ```bash
-curl -s -D- -o /dev/null http://localhost:8080/static | grep -i x-rendering   # origin
-curl -s -D- -o /dev/null http://localhost:8081/static | grep -i x-rendering   # edge-1 (isEdge=true)
+curl -s -D- -o /dev/null "http://localhost:8080/static?cache=cold" | grep -i x-rendering  # origin → SSR
+curl -s -D- -o /dev/null "http://localhost:8081/static?cache=cold" | grep -i x-rendering  # edge-1 → EDGE_ISR
 ```
+> **Why the `?cache=cold`:** with a usable cache, rule 1 (SSG) fires first everywhere and
+> you would see SSG on both, hiding the difference. Cold cache lets rule 2 (edge) show.
+>
+> **You cannot fake an edge at `:8080`.** The proxy sets `X-Served-By: origin` on `/`,
+> overwriting any client value — so `-H 'X-Served-By: edge-node-1'` there yields SSR.
+> Use `http://localhost:8080/edge1/...` or hit `:8081`/`:8082` directly.
 
 ## 4.4 Useful container controls
 ```bash
@@ -205,7 +245,7 @@ docker stats                            # live CPU/memory per container
 ## 4.5 Collect evidence / run experiments
 ```bash
 # Functional + unit proof (no server needed):
-npm test                                # 14 tests, all 9 decision rules
+npm test                                # 28 tests, all 9 decision rules + override precedence
 
 # Strategy switching + performance report:
 BASE_URL=http://localhost:8080 bash scripts/switch-test.sh

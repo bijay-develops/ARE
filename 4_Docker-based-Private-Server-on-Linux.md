@@ -1,3 +1,15 @@
+> **Status note (2026-08-09).** This document records the *original decision rationale*,
+> written from a Linux workstation. The decision still stands and the implementation
+> matches it. The stack is currently also developed on **macOS (arm64)** via Docker
+> Desktop — identical `docker compose` behaviour, only the install commands differ. The
+> Linux-native argument below remains the reason Docker was chosen over a VM.
+>
+> One implementation detail differs from the sketch below: the **edge nodes are full ARE
+> Node containers** (same image, different `SERVED_BY`/`EDGE_LATENCY_MS`), not nginx
+> proxies. See `6_technology-and-docker-guide.md` §6.3.
+
+---
+
 Being a **Linux user is actually an advantage** for this project 👍
 
 ---

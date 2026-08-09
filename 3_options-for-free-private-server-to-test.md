@@ -1,3 +1,11 @@
+> **Status note (2026-08-09).** This document records the *option analysis* that led to the
+> chosen environment. **Option 1 (Docker) was selected and is fully implemented** — see
+> `6_technology-and-docker-guide.md` for the built topology and `0_PROJECT-CONTEXT.md` §8
+> for verified container details. Options 2 and 3 were not pursued. Retained as the
+> justification narrative for the report.
+
+---
+
 **We absolutely can build a free, private server** to test this technology.
 
 Below is a **clear, student-friendly, zero-budget plan**.

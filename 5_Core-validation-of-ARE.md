@@ -49,16 +49,50 @@ We manipulate **request conditions**.
 
 Our **Context Analyzer** reads request headers.
 
-### Example headers We define
+### The control headers, as implemented
 
 ```http
-X-Network-Speed: slow | medium | fast
-X-Device-Type: mobile | desktop
-X-Cache-State: fresh | stale
-X-Load-Level: low | high
+X-Network-Speed:   slow | medium | fast
+X-Device-Type:     mobile | desktop
+X-Cache-State:     fresh | stale | cold
+X-Load-Level:      low | medium | high
+X-Data-Volatility: static | periodic | realtime
+X-Data-Size:       heavy | light
+X-Served-By:       <node-id>        # any value except "origin" ⇒ isEdge = true
 ```
 
 These are **controlled inputs** for testing.
+
+### 1b️⃣ The same controls as query parameters (browser-usable)
+
+A browser cannot attach custom headers to a normal navigation, so every header has a
+query alias. **Precedence: header > query > inference.**
+
+| Header | Query alias |
+| --- | --- |
+| `X-Network-Speed` | `?net=` |
+| `X-Device-Type` | `?device=` |
+| `X-Cache-State` | `?cache=` |
+| `X-Load-Level` | `?load=` |
+| `X-Data-Volatility` | `?volatility=` |
+| `X-Data-Size` | `?size=` |
+| `X-Served-By` | `?served=` |
+
+This turns validation into something an examiner can do from the address bar:
+
+```
+http://localhost:8080/static                          → SSG
+http://localhost:8080/static?cache=cold               → SSR
+http://localhost:8080/static?volatility=periodic      → ISR
+http://localhost:8080/dynamic?net=fast&device=desktop → CSR
+http://localhost:8080/dynamic?device=mobile           → SSR
+http://localhost:8080/heavy                           → STREAMING_SSR
+http://localhost:8080/heavy?net=slow                  → SSR
+http://localhost:8080/edge1/static?cache=cold         → EDGE_ISR
+```
+
+All eight verified against the running stack. Each page also renders an in-page
+**decision console** showing the rule that fired and a live copy of the rule table.
 
 ---
 
@@ -160,21 +194,30 @@ Strategy switched from SSR → SSG
 
 ---
 
-# 🧠 4️⃣ Edge vs Origin Simulation (Optional but Powerful)
+# 🧠 4️⃣ Edge vs Origin Simulation (Implemented)
 
-Run:
+As built: **three ARE containers from one image**, differing only by environment —
+`origin` (+0 ms), `edge-node-1` (+20 ms), `edge-node-2` (+80 ms). Each has its own cache;
+`SERVED_BY` is what makes the analyzer report `isEdge = true`.
 
-* `edge-node` container (low latency)
-* `origin` container (higher latency)
+```bash
+curl -sI "http://localhost:8080/static?cache=cold"       | grep -i x-rendering  # origin → SSR
+curl -sI "http://localhost:8080/edge1/static?cache=cold" | grep -i x-rendering  # edge   → EDGE_ISR
+curl -sI "http://localhost:8081/static?cache=cold"       | grep -i x-rendering  # edge   → EDGE_ISR
+```
 
-Then route traffic.
+### Observed behaviour (verified)
 
-### Expected behavior
+| Node | Cache cold | Cache fresh/stale |
+| --- | --- | --- |
+| Edge | **EDGE_ISR** (rule 2) | SSG (rule 1 fires first) |
+| Origin | SSR (fallback) | SSG |
 
-| Node   | Strategy        |
-| ------ | --------------- |
-| Edge   | SSG / Edge ISR  |
-| Origin | SSR / Streaming |
+> ⚠️ **You cannot fake an edge from the client.** `docker/nginx/proxy.conf` sets
+> `proxy_set_header X-Served-By origin;` on `location /`, overwriting any client-supplied
+> value — so sending `-H 'X-Served-By: edge-node-1'` to `:8080` yields SSR, not EDGE_ISR.
+> Use the `/edge1/` route or ports 8081/8082. Note the `?cache=cold`: with a usable cache
+> rule 1 serves SSG everywhere and the edge/origin difference is invisible.
 
 ---
 

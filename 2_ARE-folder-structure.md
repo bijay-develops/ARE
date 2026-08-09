@@ -38,27 +38,21 @@ adaptive-rendering-engine/
 ├── .dockerignore
 ├── .env.example                  # PORT, EDGE_LATENCY_MS, CACHE_DIR, REDIS_URL, etc.
 │
-├── docker/                       # 🐳 PRIVATE SERVER (origin + edge + proxy)
+├── docker/                       # 🐳 PRIVATE SERVER (origin + edges + proxy)
 │   ├── Dockerfile                # Multi-stage build for the ARE Node service
 │   ├── nginx/
-│   │   ├── edge.conf             # Edge node: adds latency, forwards to origin
-│   │   └── proxy.conf            # Front reverse proxy / router
+│   │   ├── Dockerfile            # Builds the proxy image
+│   │   └── proxy.conf            # / → origin, /edge1/ → edge-1, /edge2/ → edge-2
 │   └── README.md                 # How the containers map to the architecture
 │
 ├── docker-compose.yml            # origin + edge-node-1 + edge-node-2 + redis + proxy
 │
-├── docs/                         # Thesis / documentation
-│   ├── problem-statement.md
-│   ├── architecture.md
-│   ├── rendering-strategies.md
-│   ├── decision-algorithm.md
-│   ├── evaluation-metrics.md
-│   └── future-work.md
-│
-├── diagrams/                     # Architecture diagrams (draw.io exports)
-│   ├── system-architecture.png
-│   ├── decision-flow.png
-│   └── rendering-pipeline.png
+├── diagrams/                     # Architecture diagrams (SVG, editable)
+│   ├── system-architecture.svg
+│   ├── decision-flow.svg
+│   ├── rendering-pipeline.svg
+│   ├── data-flow.svg
+│   └── data-flow.mmd             # Mermaid source for data-flow.svg
 │
 ├── src/
 │   │
@@ -116,14 +110,22 @@ adaptive-rendering-engine/
 │   ├── frontend/                 # TEST PAGES + CLIENT ENTRY (the render target)
 │   │   ├── pages/
 │   │   │   ├── static.tsx        # Low volatility → expect SSG/Edge-ISR
-│   │   │   ├── dynamic.tsx       # High volatility → expect SSR/ISR
-│   │   │   └── heavy.tsx         # Large/interactive → expect Streaming SSR/CSR
+│   │   │   ├── dynamic.tsx       # High volatility → expect SSR/ISR/CSR
+│   │   │   └── heavy.tsx         # Large/interactive → expect Streaming SSR
 │   │   ├── components/
 │   │   │   ├── header.tsx           # Page header + strategy badge
 │   │   │   └── strategy-console.tsx # In-page decision console (reuses STRATEGY_RULES)
 │   │   ├── are-page.css          # Shared styling for engine-rendered pages
+│   │   ├── index.html            # Portfolio landing page served at /
+│   │   ├── script.js             # Client script for the landing page
+│   │   ├── style.css             # Styling for the landing page
 │   │   └── client/
 │   │       └── entry-client.tsx  # Hydration entry, bundled by esbuild
+│   │
+│   ├── control_panel/            # Operator UI served at /control
+│   │   ├── index.html            # Inspector, traffic generator, edge race, cache lab
+│   │   ├── script.js
+│   │   └── style.css
 │   │
 │   ├── config/
 │   │   ├── engine.config.ts      # Reads .env, exposes typed config
@@ -135,16 +137,16 @@ adaptive-rendering-engine/
 │       ├── file-utils.ts
 │       └── helpers.ts
 │
-├── public/                       # Built client bundle + SSG/static output (served)
-│   └── .gitkeep
+├── public/                       # Built client bundle + SSG output (served)
+│   ├── client.js                 # esbuild output (+ .map)
+│   └── ssg/                      # Prebuilt SSG artifacts, e.g. static.html
 │
 ├── experiments/                  # BENCHMARKING & COMPARISONS
-│   ├── ssg-vs-ssr.md
-│   ├── ssr-vs-streaming.md
-│   ├── adaptive-vs-static.md
 │   └── results/
 │       ├── graphs/
-│       └── raw-data/
+│       ├── raw-data/             # metrics.ndjson — one JSON record per request
+│       ├── report.csv            # aggregated by `npm run report`
+│       └── report.json
 │
 ├── scripts/                      # AUTOMATION (run on host or in containers)
 │   ├── build-client.ts           # esbuild → public/ (CSR/hydration bundle)
@@ -154,21 +156,28 @@ adaptive-rendering-engine/
 │   ├── load-test.sh              # Apache Bench against origin/edge (doc 5)
 │   └── generate-report.ts        # Aggregates metrics into experiments/results
 │
-├── tests/
-│   ├── decision-engine.test.ts   # Context → expected strategy (core proof)
-│   ├── context-analyzer.test.ts  # Header/query overrides → context (URL re-triggering)
-│   ├── cache.test.ts
-│   └── rendering.test.ts
+├── tests/                        # 28 tests total
+│   ├── decision-engine.test.ts   # (10) Context → expected strategy (core proof)
+│   ├── context-analyzer.test.ts  # (14) Header/query overrides → context + URL re-triggering
+│   ├── cache.test.ts             # (2)
+│   └── rendering.test.ts         # (2)
 │
-└── report/                       # FINAL YEAR SUBMISSION
-    ├── abstract.md
-    ├── introduction.md
-    ├── methodology.md
-    ├── implementation.md
-    ├── results.md
-    ├── conclusion.md
-    └── references.md
+├── report-build/                 # Tooling for generating the report/slides (Python)
+│   ├── build_report.py           # → .docx     ⚠️ inputs in report/ were removed (see below)
+│   ├── build_pptx.py             # → .pptx
+│   ├── driver.py, extract_toc.py
+│   ├── toc_map.json, headings.json
+│   └── figs/                     # PNG exports of the diagrams
+│
+└── 0_PROJECT-CONTEXT.md          # ⭐ Verified single source of truth — read first
+    1_…10_*.md                    # The numbered design/run/demo document series
 ```
+
+> **Removed in commit `9f4674d`:** `docs/` (6 thesis files), `report/` (7 chapter stubs),
+> `LOGBOOK.md`, `LOGBOOK-SUMMARY.md` and the mid-term `.docx/.pdf/.pptx` deliverables.
+> They remain recoverable from git history — see `0_PROJECT-CONTEXT.md` §13. The final
+> report and defense slides will be regenerated from `0_PROJECT-CONTEXT.md` under a
+> format to be specified.
 
 ---
 
@@ -181,15 +190,25 @@ adaptive-rendering-engine/
 | SSG / SSR / Streaming SSR / ISR / CSR / Edge-ISR | `strategies/*` (one interface each) | ✅ |
 | Metrics & feedback (TTFB/FCP/bundle/CPU/mem) | `metrics/*` | ✅ |
 | Caching & invalidation | `cache/*` | ✅ |
-| Private server, origin + edge | `docker/`, `docker-compose.yml` | ✅ (was missing) |
-| Edge simulation + latency | `docker/nginx/edge.conf`, `simulation/network-throttler.ts` | ✅ (was missing) |
-| Strategy switching by header (doc 5) | `server/middleware.ts`, `scripts/switch-test.sh` | ✅ (was missing) |
-| Proof via `X-Rendering-Strategy` + logs | `server/middleware.ts`, `utils/logger.ts` | ✅ |
-| Load testing | `scripts/load-test.sh` (`ab`) | ✅ (was missing) |
-| CSR / hydration bundle | `frontend/client/`, `scripts/build-client.ts` (esbuild) | ✅ (was missing) |
-| Functional + performance tests | `tests/`, `experiments/` | ✅ |
-| Reports & diagrams | `report/`, `docs/`, `diagrams/` | ✅ |
+| Private server, origin + edge | `docker/`, `docker-compose.yml` | ✅ |
+| Edge simulation + latency | `EDGE_LATENCY_MS` per container + `simulation/network-throttler.ts` | ✅ |
+| Strategy switching by header (doc 5) | `core/context-analyzer.ts`, `scripts/switch-test.sh` | ✅ |
+| Strategy switching by **plain URL** | `QUERY_ALIASES` in `core/context-analyzer.ts` | ✅ (added) |
+| Proof via `X-Rendering-Strategy` + logs | `core/engine.ts`, `utils/logger.ts` | ✅ |
+| Load testing | `scripts/load-test.sh` (`ab`) | ✅ |
+| CSR / hydration bundle | `frontend/client/`, `scripts/build-client.ts` (esbuild) | ✅ |
+| Functional + performance tests | `tests/` (28), `experiments/results/` | ✅ |
+| In-page decision transparency | `frontend/components/strategy-console.tsx` | ✅ (added) |
+| Diagrams | `diagrams/` (SVG) | ✅ |
+| Reports | `report-build/` tooling; content from `0_PROJECT-CONTEXT.md` | ⏳ pending format |
 
-Every task in document 1 now maps to a concrete location. Build contracts (interfaces, decision rules, npm scripts) are in `7_code-generation-prompt.md`.
+Every task in document 1 maps to a concrete location. Build contracts (interfaces, decision
+rules, npm scripts) are in `7_code-generation-prompt.md`; verified runtime behaviour is in
+`0_PROJECT-CONTEXT.md`.
+
+> **Two structural notes.** Edge simulation is done by running the *same ARE image* with
+> different `SERVED_BY`/`EDGE_LATENCY_MS` env vars — there is no `docker/nginx/edge.conf`,
+> despite what earlier drafts of docs 2 and 6 said. And the strategy header is set in
+> `core/engine.ts`, not `server/middleware.ts` (which only normalises headers and parses URLs).
 
 ---
