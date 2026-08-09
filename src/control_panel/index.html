@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARE Control Center</title>
+<link rel="stylesheet" href="/control/style.css">
+</head>
+<body>
+<header>
+  <div><h1>⚡ ARE Control Center</h1><span class="sub">real-time runtime panel</span></div>
+  <button id="themeToggle">☀️ Light</button>
+</header>
+<main>
+  <section class="card wide">
+    <h2>🧠 Strategy Inspector + Simulator (real-time)</h2>
+    <div class="row">
+      <label>Route<select id="simRoute"><option value="/static">/static</option><option value="/dynamic" selected>/dynamic</option><option value="/heavy">/heavy</option></select></label>
+      <label>Network<select id="simNet"><option value="auto">Auto (live)</option><option value="fast">Fast</option><option value="medium">Medium</option><option value="slow">Slow</option></select></label>
+      <label>Device<select id="simDev"><option value="auto">Auto (live)</option><option value="desktop">Desktop</option><option value="mobile">Mobile</option></select></label>
+      <label>Load<select id="simLoad"><option value="auto">Auto</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+      <label>Cache<select id="simCache"><option value="auto">Auto</option><option value="fresh">Fresh</option><option value="stale">Stale</option><option value="cold">Cold</option></select></label>
+      <button class="primary" id="runInspect">▶ Run Now</button>
+    </div>
+    <div class="result"><div class="badge" id="insStrategy">--</div><p id="insReason">…</p></div>
+  </section>
+
+  <section class="card wide">
+    <h2>🚦 Load Generator (Concurrent Traffic)</h2>
+    <div class="row">
+      <label>Total<input id="tgTotal" type="number" value="30"></label>
+      <label>Concurrency<input id="tgConc" type="number" value="10"></label>
+      <button class="primary" id="runTraffic">🏁 Run Traffic Test</button>
+    </div>
+    <div class="stats" id="tgStats"></div>
+  </section>
+
+  <section class="card">
+    <h2>🏎️ Origin vs Edge Race</h2>
+    <button class="primary" id="runRace">🏁 Race Nodes</button>
+    <div id="raceResults"></div>
+  </section>
+
+  <section class="card">
+    <h2>🗄️ Cache Lab (/static)</h2>
+    <div class="row small">
+      <button data-cache="fresh">Fresh</button>
+      <button data-cache="stale">Stale</button>
+      <button data-cache="cold">Cold</button>
+    </div>
+    <p id="cacheResult">Click a cache state…</p>
+  </section>
+
+  <section class="card">
+    <h2>📶 Telemetry</h2>
+    <ul>
+      <li>Online: <b id="tOnline">--</b></li>
+      <li>Net type: <b id="tType">--</b></li>
+      <li>Downlink: <b id="tDown">--</b></li>
+      <li>RTT: <b id="tRtt">--</b></li>
+      <li>Device: <b id="tDev">--</b></li>
+      <li>Cores: <b id="tCores">--</b></li>
+      <li>Memory: <b id="tMem">--</b></li>
+      <li>Screen: <b id="tScreen">--</b></li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>⏱️ Page Performance</h2>
+    <ul>
+      <li>TTFB: <b id="pTtfb">--</b></li>
+      <li>DOM: <b id="pDom">--</b></li>
+      <li>Load: <b id="pLoad">--</b></li>
+      <li>Cache: <b id="pCache">--</b></li>
+    </ul>
+  </section>
+
+  <section class="card wide">
+    <h2>📡 Live Latency</h2>
+    <div class="lat"><span id="latMs">--</span> ms</div>
+    <div id="latBars"></div>
+  </section>
+</main>
+<script src="/control/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+public/client.js
+public/client.js.map
+public/ssg/
+experiments/results/raw-data/*
+experiments/results/graphs/*
+!experiments/results/raw-data/.gitkeep
+!experiments/results/graphs/.gitkeep
+.env
+*.log
+.DS_Store
