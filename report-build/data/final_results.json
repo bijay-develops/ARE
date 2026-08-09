@@ -1,0 +1,608 @@
+{
+  "trigger_matrix": [
+    {
+      "url": ":8080/static",
+      "expected": "SSG",
+      "observed": "SSG",
+      "ok": "PASS",
+      "rule": "rule 1 static + usable cache"
+    },
+    {
+      "url": ":8080/static?cache=cold",
+      "expected": "SSR",
+      "observed": "SSR",
+      "ok": "PASS",
+      "rule": "rule 9 fallback (cold defeats rule 1)"
+    },
+    {
+      "url": ":8080/static?cache=cold&net=slow",
+      "expected": "SSR",
+      "observed": "SSR",
+      "ok": "PASS",
+      "rule": "rule 8 slow network"
+    },
+    {
+      "url": ":8080/static?volatility=periodic",
+      "expected": "ISR",
+      "observed": "ISR",
+      "ok": "PASS",
+      "rule": "rule 6 periodic data"
+    },
+    {
+      "url": ":8080/static?cache=cold&load=high",
+      "expected": "ISR",
+      "observed": "ISR",
+      "ok": "PASS",
+      "rule": "rule 3 high load"
+    },
+    {
+      "url": ":8080/static?volatility=realtime&net=fast&device=desktop",
+      "expected": "CSR",
+      "observed": "CSR",
+      "ok": "PASS",
+      "rule": "rule 4 capable client"
+    },
+    {
+      "url": ":8080/static?volatility=static&cache=cold&size=heavy&net=fast",
+      "expected": "STREAMING_SSR",
+      "observed": "STREAMING_SSR",
+      "ok": "PASS",
+      "rule": "rule 7 heavy payload"
+    },
+    {
+      "url": ":8080/dynamic",
+      "expected": "SSR",
+      "observed": "SSR",
+      "ok": "PASS",
+      "rule": "rule 9 fallback (natural default)"
+    },
+    {
+      "url": ":8080/dynamic?net=fast&device=desktop",
+      "expected": "CSR",
+      "observed": "CSR",
+      "ok": "PASS",
+      "rule": "rule 4"
+    },
+    {
+      "url": ":8080/dynamic?device=mobile",
+      "expected": "SSR",
+      "observed": "SSR",
+      "ok": "PASS",
+      "rule": "rule 5 weak device"
+    },
+    {
+      "url": ":8080/dynamic?load=high",
+      "expected": "ISR",
+      "observed": "ISR",
+      "ok": "PASS",
+      "rule": "rule 3"
+    },
+    {
+      "url": ":8080/dynamic?volatility=periodic",
+      "expected": "ISR",
+      "observed": "ISR",
+      "ok": "PASS",
+      "rule": "rule 6"
+    },
+    {
+      "url": ":8080/heavy",
+      "expected": "STREAMING_SSR",
+      "observed": "STREAMING_SSR",
+      "ok": "PASS",
+      "rule": "rule 7"
+    },
+    {
+      "url": ":8080/heavy?net=slow",
+      "expected": "SSR",
+      "observed": "SSR",
+      "ok": "PASS",
+      "rule": "rule 8 outranks rule 7"
+    },
+    {
+      "url": ":8080/heavy?device=mobile",
+      "expected": "SSR",
+      "observed": "SSR",
+      "ok": "PASS",
+      "rule": "rule 5 outranks rule 7"
+    },
+    {
+      "url": ":8080/edge1/static?cache=cold",
+      "expected": "EDGE_ISR",
+      "observed": "EDGE_ISR",
+      "ok": "PASS",
+      "rule": "rule 2 static at edge"
+    },
+    {
+      "url": ":8081/static?cache=cold",
+      "expected": "EDGE_ISR",
+      "observed": "EDGE_ISR",
+      "ok": "PASS",
+      "rule": "rule 2 direct edge node"
+    }
+  ],
+  "trigger_pass": 17,
+  "per_strategy_server": {
+    "SSG": {
+      "n": 61,
+      "ttfb": 0.637,
+      "ttfb_p95": 1.11,
+      "render": 0.202,
+      "total": 0.839,
+      "bytes": 8248,
+      "hit": 1.0
+    },
+    "SSR": {
+      "n": 61,
+      "ttfb": 0.638,
+      "ttfb_p95": 1.18,
+      "render": 0.154,
+      "total": 0.791,
+      "bytes": 7885,
+      "hit": 0.0
+    },
+    "CSR": {
+      "n": 61,
+      "ttfb": 0.215,
+      "ttfb_p95": 0.27,
+      "render": 0.119,
+      "total": 0.335,
+      "bytes": 863,
+      "hit": 0.0
+    },
+    "ISR": {
+      "n": 61,
+      "ttfb": 0.21,
+      "ttfb_p95": 0.26,
+      "render": 0.158,
+      "total": 0.368,
+      "bytes": 7884,
+      "hit": 1.0
+    },
+    "STREAMING_SSR": {
+      "n": 61,
+      "ttfb": 1.192,
+      "ttfb_p95": 2.34,
+      "render": 0.296,
+      "total": 1.488,
+      "bytes": 26282,
+      "hit": 0.0
+    },
+    "EDGE_ISR": {
+      "n": 61,
+      "ttfb": 0.635,
+      "ttfb_p95": 0.88,
+      "render": 0.407,
+      "total": 1.041,
+      "bytes": 8036,
+      "hit": 1.0
+    }
+  },
+  "per_strategy_client": {
+    "SSG": {
+      "n": 60,
+      "mean": 4.01,
+      "median": 3.53,
+      "p95": 6.84,
+      "min": 1.75,
+      "max": 7.78
+    },
+    "SSR": {
+      "n": 60,
+      "mean": 2.71,
+      "median": 2.69,
+      "p95": 3.52,
+      "min": 1.58,
+      "max": 3.95
+    },
+    "CSR": {
+      "n": 60,
+      "mean": 2.87,
+      "median": 2.87,
+      "p95": 3.65,
+      "min": 1.98,
+      "max": 4.29
+    },
+    "ISR": {
+      "n": 60,
+      "mean": 2.87,
+      "median": 2.99,
+      "p95": 3.56,
+      "min": 1.64,
+      "max": 4.18
+    },
+    "STREAMING_SSR": {
+      "n": 60,
+      "mean": 3.2,
+      "median": 2.91,
+      "p95": 5.52,
+      "min": 2.27,
+      "max": 7.46
+    },
+    "EDGE_ISR": {
+      "n": 60,
+      "mean": 29.64,
+      "median": 29.81,
+      "p95": 32.55,
+      "min": 24.9,
+      "max": 32.68
+    }
+  },
+  "isr_lifecycle": [
+    {
+      "i": 1,
+      "t": 0.1,
+      "ms": 31.95,
+      "state": "miss"
+    },
+    {
+      "i": 2,
+      "t": 2.2,
+      "ms": 8.49,
+      "state": "fresh"
+    },
+    {
+      "i": 3,
+      "t": 4.2,
+      "ms": 7.88,
+      "state": "fresh"
+    },
+    {
+      "i": 4,
+      "t": 6.3,
+      "ms": 6.66,
+      "state": "fresh"
+    },
+    {
+      "i": 5,
+      "t": 8.4,
+      "ms": 7.53,
+      "state": "fresh"
+    },
+    {
+      "i": 6,
+      "t": 10.5,
+      "ms": 7.2,
+      "state": "fresh"
+    },
+    {
+      "i": 7,
+      "t": 12.6,
+      "ms": 6.51,
+      "state": "fresh"
+    },
+    {
+      "i": 8,
+      "t": 14.6,
+      "ms": 6.51,
+      "state": "fresh"
+    },
+    {
+      "i": 9,
+      "t": 16.7,
+      "ms": 7.08,
+      "state": "fresh"
+    },
+    {
+      "i": 10,
+      "t": 18.8,
+      "ms": 7.39,
+      "state": "fresh"
+    },
+    {
+      "i": 11,
+      "t": 20.9,
+      "ms": 6.98,
+      "state": "fresh"
+    },
+    {
+      "i": 12,
+      "t": 23.0,
+      "ms": 8.3,
+      "state": "fresh"
+    },
+    {
+      "i": 13,
+      "t": 25.0,
+      "ms": 8.02,
+      "state": "fresh"
+    },
+    {
+      "i": 14,
+      "t": 27.1,
+      "ms": 7.71,
+      "state": "fresh"
+    },
+    {
+      "i": 15,
+      "t": 29.2,
+      "ms": 12.13,
+      "state": "fresh"
+    },
+    {
+      "i": 16,
+      "t": 31.3,
+      "ms": 10.46,
+      "state": "stale-revalidating"
+    },
+    {
+      "i": 17,
+      "t": 33.4,
+      "ms": 6.51,
+      "state": "fresh"
+    },
+    {
+      "i": 18,
+      "t": 35.5,
+      "ms": 6.48,
+      "state": "fresh"
+    },
+    {
+      "i": 19,
+      "t": 37.5,
+      "ms": 6.81,
+      "state": "fresh"
+    },
+    {
+      "i": 20,
+      "t": 39.6,
+      "ms": 5.91,
+      "state": "fresh"
+    },
+    {
+      "i": 21,
+      "t": 41.7,
+      "ms": 6.24,
+      "state": "fresh"
+    },
+    {
+      "i": 22,
+      "t": 43.8,
+      "ms": 6.72,
+      "state": "fresh"
+    },
+    {
+      "i": 23,
+      "t": 45.8,
+      "ms": 6.45,
+      "state": "fresh"
+    },
+    {
+      "i": 24,
+      "t": 47.9,
+      "ms": 6.58,
+      "state": "fresh"
+    },
+    {
+      "i": 25,
+      "t": 50.0,
+      "ms": 7.78,
+      "state": "fresh"
+    },
+    {
+      "i": 26,
+      "t": 52.1,
+      "ms": 5.48,
+      "state": "fresh"
+    },
+    {
+      "i": 27,
+      "t": 54.2,
+      "ms": 5.27,
+      "state": "fresh"
+    },
+    {
+      "i": 28,
+      "t": 56.2,
+      "ms": 6.46,
+      "state": "fresh"
+    },
+    {
+      "i": 29,
+      "t": 58.3,
+      "ms": 6.4,
+      "state": "fresh"
+    },
+    {
+      "i": 30,
+      "t": 60.4,
+      "ms": 5.32,
+      "state": "fresh"
+    },
+    {
+      "i": 31,
+      "t": 62.5,
+      "ms": 9.23,
+      "state": "stale-revalidating"
+    },
+    {
+      "i": 32,
+      "t": 64.6,
+      "ms": 5.52,
+      "state": "fresh"
+    },
+    {
+      "i": 33,
+      "t": 66.6,
+      "ms": 7.01,
+      "state": "fresh"
+    },
+    {
+      "i": 34,
+      "t": 68.7,
+      "ms": 6.77,
+      "state": "fresh"
+    }
+  ],
+  "network": {
+    "slow": {
+      "mean": 409.26,
+      "median": 409.05,
+      "n": 10
+    },
+    "medium": {
+      "mean": 111.93,
+      "median": 111.11,
+      "n": 10
+    },
+    "fast": {
+      "mean": 5.5,
+      "median": 5.67,
+      "n": 10
+    }
+  },
+  "edge": {
+    "origin": {
+      "mean": 5.38,
+      "median": 5.28,
+      "delta": 0.0
+    },
+    "edge-node-1": {
+      "mean": 27.69,
+      "median": 27.45,
+      "delta": 22.31
+    },
+    "edge-node-2": {
+      "mean": 92.2,
+      "median": 92.22,
+      "delta": 86.83
+    }
+  },
+  "load_fast": {
+    "fixed_ssr": {
+      "doc_bytes": 7905,
+      "n": 800,
+      "failed": 87,
+      "total_bytes": 6538202,
+      "rps": 1458.71,
+      "mean_ms": 34.277,
+      "p50": 18,
+      "p90": 26,
+      "p95": 35,
+      "p99": 224,
+      "max": 228,
+      "strategies": {
+        "SSR": 800
+      },
+      "load": {
+        "low": 800
+      },
+      "ttfb": 0.137,
+      "bytes": 7905,
+      "hit": 0.0,
+      "cpu_ms": 428,
+      "rss_mb": 86.2
+    },
+    "adaptive": {
+      "doc_bytes": 853,
+      "n": 800,
+      "failed": 0,
+      "total_bytes": 888800,
+      "rps": 3172.21,
+      "mean_ms": 15.762,
+      "p50": 14,
+      "p90": 18,
+      "p95": 23,
+      "p99": 30,
+      "max": 34,
+      "strategies": {
+        "CSR": 800
+      },
+      "load": {
+        "low": 800
+      },
+      "ttfb": 0.036,
+      "bytes": 853,
+      "hit": 0.0,
+      "cpu_ms": 347,
+      "rss_mb": 88.9
+    }
+  },
+  "load_medium": {
+    "fixed_ssr": {
+      "doc_bytes": 7913,
+      "n": 800,
+      "failed": 72,
+      "total_bytes": 6544640,
+      "rps": 349.61,
+      "mean_ms": 143.015,
+      "p50": 134,
+      "p90": 145,
+      "p95": 156,
+      "p99": 161,
+      "max": 162,
+      "strategies": {
+        "SSR": 800
+      },
+      "load": {
+        "low": 800
+      },
+      "ttfb": 0.315,
+      "bytes": 7913,
+      "hit": 0.0,
+      "cpu_ms": 1044,
+      "rss_mb": 88.4
+    },
+    "adaptive": {
+      "doc_bytes": 7799,
+      "n": 800,
+      "failed": 700,
+      "total_bytes": 6493650,
+      "rps": 347.03,
+      "mean_ms": 144.08,
+      "p50": 137,
+      "p90": 146,
+      "p95": 147,
+      "p99": 148,
+      "max": 149,
+      "strategies": {
+        "SSR": 385,
+        "ISR": 415
+      },
+      "load": {
+        "low": 113,
+        "high": 415,
+        "medium": 272
+      },
+      "ttfb": 0.228,
+      "bytes": 7856,
+      "hit": 0.52,
+      "cpu_ms": 689,
+      "rss_mb": 98.1
+    }
+  },
+  "decision_space": {
+    "total": 648,
+    "byStrategy": {
+      "SSG": 144,
+      "ISR": 300,
+      "SSR": 124,
+      "EDGE_ISR": 36,
+      "STREAMING_SSR": 20,
+      "CSR": 24
+    },
+    "byRule": {
+      "1": 144,
+      "2": 36,
+      "3": 156,
+      "4": 24,
+      "5": 72,
+      "6": 144,
+      "7": 20,
+      "8": 32,
+      "9": 20
+    },
+    "deterministic": true,
+    "ns_per_decision": 26.53,
+    "decisions_per_second": 37693089
+  },
+  "tests": {
+    "files": 4,
+    "total": 28,
+    "detail": {
+      "decision-engine": 10,
+      "context-analyzer": 14,
+      "rendering": 2,
+      "cache": 2
+    }
+  }
+}
